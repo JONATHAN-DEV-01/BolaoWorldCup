@@ -29,13 +29,27 @@ export function RegisterForm({ onSwitch }: RegisterFormProps) {
     setLoading(true)
     try {
       await signUp(email, password, username)
+      // If signUp succeeded and auto-login happened, AuthContext will
+      // redirect via the ProtectedRoute. Show success as fallback.
       setSuccess(true)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro ao criar conta')
+      const msg = err instanceof Error ? err.message : 'Erro ao criar conta'
+      if (msg.includes('rate limit') || msg.includes('429')) {
+        setError('Muitas tentativas de cadastro. Aguarde alguns minutos e tente novamente.')
+      } else if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('User already registered')) {
+        setError('Este e-mail já está cadastrado. Faça login.')
+      } else if (msg.includes('invalid email')) {
+        setError('E-mail inválido.')
+      } else if (msg.includes('Password should be')) {
+        setError('A senha deve ter pelo menos 6 caracteres.')
+      } else {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }
   }
+
 
   if (success) {
     return (
@@ -45,9 +59,9 @@ export function RegisterForm({ onSwitch }: RegisterFormProps) {
           Conta criada!
         </h3>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-          Verifique seu e-mail para confirmar o cadastro e depois faça login.
+          Sua conta foi criada com sucesso. Clique abaixo para fazer login!
         </p>
-        <button className="btn btn-ghost" onClick={onSwitch}>Ir para Login</button>
+        <button className="btn btn-primary" onClick={onSwitch}>Fazer Login</button>
       </div>
     )
   }

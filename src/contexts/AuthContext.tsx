@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error
 
     if (data.user) {
-      // Upsert profile (trigger may already handle it)
+      // Upsert profile — trigger handles it but upsert as safety net
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         username,
@@ -83,11 +83,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         is_admin: false,
         total_points: 0,
       })
-      if (profileError && !profileError.message.includes('duplicate')) {
-        throw profileError
+      if (profileError && !profileError.message.includes('duplicate') && !profileError.message.includes('violates')) {
+        console.warn('Profile upsert warning:', profileError.message)
+      }
+
+      // Auto sign-in (mailer_autoconfirm is enabled — no email verification needed)
+      if (data.session) {
+        // Session already created (autoconfirm active)
+        setSession(data.session)
+        setUser(data.user)
+        await fetchProfile(data.user.id)
+      } else {
+        // Fallback: sign in manually
+        await supabase.auth.signInWithPassword({ email, password })
       }
     }
   }
+
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
