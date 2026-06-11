@@ -253,10 +253,18 @@ export function MatchCard({ match, prediction, onSaved }: MatchCardProps) {
                 }
               }}
             >
-              <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>{shortLabel}</span>
-              <span style={{ fontSize: '0.68rem', opacity: 0.85, textAlign: 'center', maxWidth: '5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {label}
-              </span>
+              {key === 'draw' ? (
+                <>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>{shortLabel}</span>
+                  <span style={{ fontSize: '0.68rem', opacity: 0.85, textAlign: 'center', maxWidth: '5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {label}
+                  </span>
+                </>
+              ) : (
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, textAlign: 'center', padding: '0 0.25rem', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {label}
+                </span>
+              )}
             </button>
           )
         })}
