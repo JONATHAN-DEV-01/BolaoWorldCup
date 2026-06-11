@@ -10,6 +10,7 @@ export function useLeaderboard() {
     const { data } = await supabase
       .from('profiles')
       .select('*')
+      .eq('is_admin', false)
       .order('total_points', { ascending: false })
     if (data) {
       setLeaderboard(

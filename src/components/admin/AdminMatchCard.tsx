@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Match } from '../../types'
-import { getFlag, calculatePoints } from '../../utils/points'
+import { getFlag } from '../../utils/points'
 import { supabase } from '../../lib/supabase'
 
 interface AdminMatchCardProps {
@@ -14,60 +14,53 @@ export function AdminMatchCard({ match, onUpdated }: AdminMatchCardProps) {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // editing mode: finished matches start collapsed; pending start ready to fill
+  const [editing, setEditing] = useState(!match.is_finished)
 
   const homeFlag = getFlag(match.home_team)
   const awayFlag = getFlag(match.away_team)
 
-  const handleSave = async () => {
-    const h = parseInt(homeScore)
-    const a = parseInt(awayScore)
-    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) {
-      setError('Insira placares válidos')
-      return
-    }
-
+  const handleReopen = async () => {
     setSaving(true)
     setError(null)
     setSuccess(false)
-
     try {
-      // Update match result
+      const { error: matchErr } = await supabase
+        .from('matches')
+        .update({ home_score: null, away_score: null, is_finished: false })
+        .eq('id', match.id)
+      if (matchErr) throw matchErr
+      // O trigger no banco zera os pontos automaticamente
+      setHomeScore('')
+      setAwayScore('')
+      setEditing(true)
+      onUpdated()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro ao reabrir')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSave = async () => {
+    const h = parseInt(homeScore)
+    const a = parseInt(awayScore)
+    if (homeScore.trim() === '' || awayScore.trim() === '' || isNaN(h) || isNaN(a) || h < 0 || a < 0) {
+      setError('Insira placares válidos (0 é aceito)')
+      return
+    }
+    setSaving(true)
+    setError(null)
+    setSuccess(false)
+    try {
+      // Apenas salva o resultado — o trigger no banco recalcula tudo
       const { error: matchErr } = await supabase
         .from('matches')
         .update({ home_score: h, away_score: a, is_finished: true })
         .eq('id', match.id)
-
       if (matchErr) throw matchErr
-
-      // Fetch all predictions for this match
-      const { data: preds } = await supabase
-        .from('predictions')
-        .select('*')
-        .eq('match_id', match.id)
-
-      if (preds && preds.length > 0) {
-        // Update points for each prediction
-        for (const pred of preds) {
-          const pts = calculatePoints(h, a, pred.predicted_home_score, pred.predicted_away_score)
-          await supabase
-            .from('predictions')
-            .update({ points_earned: pts })
-            .eq('id', pred.id)
-        }
-
-        // Update total_points for each affected user
-        const userIds = [...new Set(preds.map((p: { user_id: string }) => p.user_id))]
-        for (const userId of userIds) {
-          const { data: allPreds } = await supabase
-            .from('predictions')
-            .select('points_earned')
-            .eq('user_id', userId)
-          const total = allPreds?.reduce((sum: number, p: { points_earned: number }) => sum + (p.points_earned || 0), 0) || 0
-          await supabase.from('profiles').update({ total_points: total }).eq('id', userId)
-        }
-      }
-
       setSuccess(true)
+      setEditing(false)
       onUpdated()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar')
@@ -76,8 +69,25 @@ export function AdminMatchCard({ match, onUpdated }: AdminMatchCardProps) {
     }
   }
 
+  const handleEdit = () => {
+    setHomeScore(match.home_score?.toString() ?? '')
+    setAwayScore(match.away_score?.toString() ?? '')
+    setSuccess(false)
+    setError(null)
+    setEditing(true)
+  }
+
+  const handleCancel = () => {
+    setHomeScore(match.home_score?.toString() ?? '')
+    setAwayScore(match.away_score?.toString() ?? '')
+    setSuccess(false)
+    setError(null)
+    setEditing(false)
+  }
+
   return (
     <div className={`admin-match-card${match.is_finished ? ' finished' : ''}`}>
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
         <span style={{
           fontSize: '0.7rem',
@@ -93,7 +103,7 @@ export function AdminMatchCard({ match, onUpdated }: AdminMatchCardProps) {
         <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
           R{match.round} · {new Date(match.match_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} · {new Date(match.match_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
         </span>
-        {match.is_finished && (
+        {match.is_finished && !editing && (
           <span style={{
             fontSize: '0.7rem', fontWeight: 700,
             color: 'var(--color-accent-primary)', marginLeft: 'auto',
@@ -101,48 +111,135 @@ export function AdminMatchCard({ match, onUpdated }: AdminMatchCardProps) {
             ✅ Resultado salvo
           </span>
         )}
+        {match.is_finished && editing && (
+          <span style={{
+            fontSize: '0.7rem', fontWeight: 700,
+            color: 'var(--color-accent-gold)', marginLeft: 'auto',
+          }}>
+            ✏️ Editando
+          </span>
+        )}
       </div>
 
+      {/* Teams + Scores */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <span style={{ fontSize: '1.25rem' }}>{homeFlag}</span>
         <span style={{ fontWeight: 600, fontSize: '0.875rem', flex: 1 }}>{match.home_team}</span>
 
-        <input
-          id={`admin-home-${match.id}`}
-          type="number"
-          min="0"
-          max="99"
-          className="score-input"
-          style={{ width: 48, height: 44, fontSize: '1.1rem' }}
-          value={homeScore}
-          onChange={e => setHomeScore(e.target.value)}
-          placeholder="0"
-        />
-        <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>×</span>
-        <input
-          id={`admin-away-${match.id}`}
-          type="number"
-          min="0"
-          max="99"
-          className="score-input"
-          style={{ width: 48, height: 44, fontSize: '1.1rem' }}
-          value={awayScore}
-          onChange={e => setAwayScore(e.target.value)}
-          placeholder="0"
-        />
+        {editing ? (
+          /* Editable inputs */
+          <>
+            <input
+              id={`admin-home-${match.id}`}
+              type="number"
+              min="0"
+              max="99"
+              className="score-input"
+              style={{ width: 48, height: 44, fontSize: '1.1rem' }}
+              value={homeScore}
+              onChange={e => setHomeScore(e.target.value)}
+              placeholder="0"
+              autoFocus
+            />
+            <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>×</span>
+            <input
+              id={`admin-away-${match.id}`}
+              type="number"
+              min="0"
+              max="99"
+              className="score-input"
+              style={{ width: 48, height: 44, fontSize: '1.1rem' }}
+              value={awayScore}
+              onChange={e => setAwayScore(e.target.value)}
+              placeholder="0"
+            />
+          </>
+        ) : (
+          /* Read-only result display */
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+          }}>
+            <div className="score-input" style={{
+              width: 44, height: 40, fontSize: '1.1rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(0, 212, 170, 0.08)',
+              borderColor: 'rgba(0, 212, 170, 0.3)',
+              cursor: 'default',
+            }}>
+              {match.home_score ?? '—'}
+            </div>
+            <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>×</span>
+            <div className="score-input" style={{
+              width: 44, height: 40, fontSize: '1.1rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(0, 212, 170, 0.08)',
+              borderColor: 'rgba(0, 212, 170, 0.3)',
+              cursor: 'default',
+            }}>
+              {match.away_score ?? '—'}
+            </div>
+          </div>
+        )}
 
         <span style={{ fontWeight: 600, fontSize: '0.875rem', flex: 1, textAlign: 'right' }}>{match.away_team}</span>
         <span style={{ fontSize: '1.25rem' }}>{awayFlag}</span>
 
-        <button
-          id={`admin-save-${match.id}`}
-          className="btn btn-primary btn-sm"
-          onClick={handleSave}
-          disabled={saving}
-          style={{ minWidth: 80 }}
-        >
-          {saving ? '...' : match.is_finished ? 'Atualizar' : 'Salvar'}
-        </button>
+        {/* Action buttons */}
+        {editing ? (
+          <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
+            <button
+              id={`admin-save-${match.id}`}
+              className="btn btn-primary btn-sm"
+              onClick={handleSave}
+              disabled={saving}
+              style={{ minWidth: 72 }}
+            >
+              {saving ? '...' : '✓ Salvar'}
+            </button>
+            {match.is_finished && (
+              <button
+                id={`admin-cancel-${match.id}`}
+                className="btn btn-ghost btn-sm"
+                onClick={handleCancel}
+                disabled={saving}
+                style={{ minWidth: 60 }}
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
+            <button
+              id={`admin-edit-${match.id}`}
+              className="btn btn-ghost btn-sm"
+              onClick={handleEdit}
+              disabled={saving}
+              style={{
+                minWidth: 76,
+                borderColor: 'rgba(245, 197, 24, 0.4)',
+                color: 'var(--color-accent-gold)',
+              }}
+            >
+              ✏️ Editar
+            </button>
+            <button
+              id={`admin-reopen-${match.id}`}
+              className="btn btn-ghost btn-sm"
+              onClick={handleReopen}
+              disabled={saving}
+              style={{
+                minWidth: 84,
+                borderColor: 'rgba(233, 69, 96, 0.4)',
+                color: 'var(--color-accent-secondary)',
+              }}
+            >
+              {saving ? '...' : '↩ Reabrir'}
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (

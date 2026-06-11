@@ -9,10 +9,25 @@ interface MatchCardProps {
   onSaved?: () => void
 }
 
+type Outcome = 'home' | 'draw' | 'away'
+
+/** Converts an outcome choice to a representative score stored in the DB */
+function outcomeToScore(outcome: Outcome): { home: number; away: number } {
+  if (outcome === 'home') return { home: 1, away: 0 }
+  if (outcome === 'draw') return { home: 0, away: 0 }
+  return { home: 0, away: 1 }
+}
+
+/** Infers the outcome from a stored prediction */
+function scoreToOutcome(home: number, away: number): Outcome {
+  if (home > away) return 'home'
+  if (home === away) return 'draw'
+  return 'away'
+}
+
 export function MatchCard({ match, prediction, onSaved }: MatchCardProps) {
   const { savePrediction } = usePredictions()
-  const [homeInput, setHomeInput] = useState('')
-  const [awayInput, setAwayInput] = useState('')
+  const [selected, setSelected] = useState<Outcome | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -31,16 +46,15 @@ export function MatchCard({ match, prediction, onSaved }: MatchCardProps) {
   const status = getStatus()
 
   const handleSave = async () => {
-    const h = parseInt(homeInput)
-    const a = parseInt(awayInput)
-    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) {
-      setError('Insira um placar válido (0 ou mais)')
+    if (!selected) {
+      setError('Selecione um resultado antes de confirmar')
       return
     }
+    const { home, away } = outcomeToScore(selected)
     setSaving(true)
     setError(null)
     try {
-      await savePrediction(match.id, h, a)
+      await savePrediction(match.id, home, away)
       setSaved(true)
       onSaved?.()
     } catch (err: unknown) {
@@ -53,7 +67,11 @@ export function MatchCard({ match, prediction, onSaved }: MatchCardProps) {
   const homeFlag = getFlag(match.home_team)
   const awayFlag = getFlag(match.away_team)
 
-  // Points earned or possible
+  // Outcome already saved
+  const savedOutcome: Outcome | null = hasPrediction
+    ? scoreToOutcome(prediction!.predicted_home_score, prediction!.predicted_away_score)
+    : null
+
   const pointsDisplay = hasPrediction && match.is_finished
     ? `${prediction!.points_earned} pts`
     : hasPrediction
@@ -63,6 +81,18 @@ export function MatchCard({ match, prediction, onSaved }: MatchCardProps) {
   const pointsBadgeCls = match.is_finished && hasPrediction
     ? prediction!.points_earned > 0 ? 'badge-predicted' : 'badge-closed'
     : 'badge-pts'
+
+  // Official result outcome (for finished matches)
+  const officialOutcome: Outcome | null =
+    match.is_finished && match.home_score !== null && match.away_score !== null
+      ? scoreToOutcome(match.home_score, match.away_score)
+      : null
+
+  const outcomeOptions: { key: Outcome; label: string; shortLabel: string }[] = [
+    { key: 'home', label: match.home_team, shortLabel: '1' },
+    { key: 'draw', label: 'Empate', shortLabel: 'X' },
+    { key: 'away', label: match.away_team, shortLabel: '2' },
+  ]
 
   return (
     <div className="match-card animate-fade-in">
@@ -92,12 +122,13 @@ export function MatchCard({ match, prediction, onSaved }: MatchCardProps) {
         </span>
       </div>
 
-      {/* Teams + Inputs */}
+      {/* Teams row */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: '1fr auto 1fr',
         alignItems: 'center',
-        gap: '1rem',
+        gap: '0.75rem',
+        marginBottom: '1rem',
       }}>
         {/* Home team */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem' }}>
@@ -107,58 +138,8 @@ export function MatchCard({ match, prediction, onSaved }: MatchCardProps) {
           </span>
         </div>
 
-        {/* Score inputs / result */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {hasPrediction || started || match.is_finished ? (
-            // Show result or prediction, not editable
-            <>
-              <div className="score-input" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: match.is_finished ? 'rgba(0, 212, 170, 0.05)' : undefined,
-                opacity: hasPrediction ? 1 : 0.4,
-              }}>
-                {hasPrediction
-                  ? prediction!.predicted_home_score
-                  : match.home_score ?? '—'}
-              </div>
-              <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700, fontSize: '1.25rem' }}>×</span>
-              <div className="score-input" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: match.is_finished ? 'rgba(0, 212, 170, 0.05)' : undefined,
-                opacity: hasPrediction ? 1 : 0.4,
-              }}>
-                {hasPrediction
-                  ? prediction!.predicted_away_score
-                  : match.away_score ?? '—'}
-              </div>
-            </>
-          ) : (
-            // Editable inputs
-            <>
-              <input
-                id={`home-score-${match.id}`}
-                type="number"
-                min="0"
-                max="99"
-                className="score-input"
-                value={homeInput}
-                onChange={e => setHomeInput(e.target.value)}
-                placeholder="0"
-              />
-              <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700, fontSize: '1.25rem' }}>×</span>
-              <input
-                id={`away-score-${match.id}`}
-                type="number"
-                min="0"
-                max="99"
-                className="score-input"
-                value={awayInput}
-                onChange={e => setAwayInput(e.target.value)}
-                placeholder="0"
-              />
-            </>
-          )}
-        </div>
+        {/* VS divider */}
+        <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700, fontSize: '1rem' }}>VS</span>
 
         {/* Away team */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem' }}>
@@ -169,9 +150,121 @@ export function MatchCard({ match, prediction, onSaved }: MatchCardProps) {
         </div>
       </div>
 
+      {/* Outcome buttons */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr 1fr',
+        gap: '0.5rem',
+        marginBottom: '0.25rem',
+      }}>
+        {outcomeOptions.map(({ key, label, shortLabel }) => {
+          const activeOutcome = savedOutcome ?? selected
+          const isActive = activeOutcome === key
+          const isCorrect = match.is_finished && officialOutcome === key
+          const isDisabled = !canPredict
+
+          let btnStyle: React.CSSProperties = {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.2rem',
+            padding: '0.625rem 0.25rem',
+            borderRadius: '10px',
+            border: '2px solid',
+            cursor: isDisabled ? 'default' : 'pointer',
+            transition: 'all 0.22s ease',
+            fontFamily: 'var(--font-display)',
+            fontWeight: 700,
+            fontSize: '0.78rem',
+            lineHeight: 1.2,
+            userSelect: 'none',
+            background: 'transparent',
+            borderColor: 'var(--color-border-light)',
+            color: 'var(--color-text-secondary)',
+          }
+
+          if (isActive && isCorrect) {
+            // User predicted correctly
+            btnStyle = {
+              ...btnStyle,
+              background: 'rgba(0, 212, 170, 0.18)',
+              borderColor: 'var(--color-accent-primary)',
+              color: 'var(--color-accent-primary)',
+              boxShadow: '0 0 12px rgba(0, 212, 170, 0.25)',
+            }
+          } else if (isActive) {
+            btnStyle = {
+              ...btnStyle,
+              background: key === 'draw'
+                ? 'rgba(245, 197, 24, 0.15)'
+                : key === 'home'
+                ? 'rgba(0, 168, 255, 0.15)'
+                : 'rgba(233, 69, 96, 0.15)',
+              borderColor: key === 'draw'
+                ? 'var(--color-accent-gold)'
+                : key === 'home'
+                ? '#00a8ff'
+                : 'var(--color-accent-secondary)',
+              color: key === 'draw'
+                ? 'var(--color-accent-gold)'
+                : key === 'home'
+                ? '#00a8ff'
+                : 'var(--color-accent-secondary)',
+              boxShadow: key === 'draw'
+                ? '0 0 12px rgba(245, 197, 24, 0.2)'
+                : key === 'home'
+                ? '0 0 12px rgba(0, 168, 255, 0.2)'
+                : '0 0 12px rgba(233, 69, 96, 0.2)',
+            }
+          } else if (isCorrect) {
+            // Official result but user didn't pick it
+            btnStyle = {
+              ...btnStyle,
+              borderColor: 'rgba(0, 212, 170, 0.4)',
+              color: 'var(--color-accent-primary)',
+              background: 'rgba(0, 212, 170, 0.05)',
+            }
+          }
+
+          return (
+            <button
+              key={key}
+              id={`outcome-${key}-${match.id}`}
+              style={btnStyle}
+              disabled={isDisabled}
+              onClick={() => !isDisabled && setSelected(key)}
+              onMouseEnter={e => {
+                if (!isDisabled && !isActive) {
+                  const el = e.currentTarget
+                  el.style.borderColor = 'var(--color-accent-primary)'
+                  el.style.color = 'var(--color-accent-primary)'
+                  el.style.background = 'rgba(0, 212, 170, 0.07)'
+                  el.style.transform = 'translateY(-2px)'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!isDisabled && !isActive) {
+                  const el = e.currentTarget
+                  el.style.borderColor = 'var(--color-border-light)'
+                  el.style.color = 'var(--color-text-secondary)'
+                  el.style.background = 'transparent'
+                  el.style.transform = ''
+                }
+              }}
+            >
+              <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>{shortLabel}</span>
+              <span style={{ fontSize: '0.68rem', opacity: 0.85, textAlign: 'center', maxWidth: '5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
       {/* Official result (if finished) */}
       {match.is_finished && match.home_score !== null && (
-        <div style={{ textAlign: 'center', marginTop: '0.75rem' }}>
+        <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
             Resultado oficial:{' '}
           </span>
@@ -214,7 +307,7 @@ export function MatchCard({ match, prediction, onSaved }: MatchCardProps) {
             id={`confirm-${match.id}`}
             className="btn btn-primary btn-sm"
             onClick={handleSave}
-            disabled={saving || !homeInput || !awayInput}
+            disabled={saving || !selected}
           >
             {saving ? '...' : '✓ Confirmar'}
           </button>

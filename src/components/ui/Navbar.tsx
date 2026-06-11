@@ -5,11 +5,15 @@ export function Navbar() {
   const { profile, signOut } = useAuth()
   const location = useLocation()
 
-  const navLinks = [
-    { to: '/predictions', label: '⚽ Palpites' },
-    { to: '/dashboard', label: '🏆 Ranking' },
-    ...(profile?.is_admin ? [{ to: '/admin', label: '⚙️ Admin' }] : []),
-  ]
+  const navLinks = profile?.is_admin
+    ? [
+        { to: '/dashboard', label: '🏆 Ranking' },
+        { to: '/admin', label: '⚙️ Admin' },
+      ]
+    : [
+        { to: '/predictions', label: '⚽ Palpites' },
+        { to: '/dashboard', label: '🏆 Ranking' },
+      ]
 
   return (
     <nav className="navbar">
