@@ -13,12 +13,7 @@ const ROUNDS: { value: RoundNumber; label: string }[] = [
 
 export function RoundTabs({ active, onChange }: RoundTabsProps) {
   return (
-    <div style={{
-      display: 'flex',
-      gap: '0.5rem',
-      overflowX: 'auto',
-      paddingBottom: '0.25rem',
-    }}>
+    <div className="round-tabs-container">
       {ROUNDS.map(r => (
         <button
           key={r.value}
