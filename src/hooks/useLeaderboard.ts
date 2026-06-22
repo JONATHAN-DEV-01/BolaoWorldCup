@@ -11,10 +11,10 @@ export function useLeaderboard() {
       .from('profiles')
       .select('*')
       .eq('is_admin', false)
-      .order('total_points', { ascending: false })
-      .order('draw_hits', { ascending: false })
-      .order('round1_points', { ascending: false })
-      .order('round2_points', { ascending: false })
+      .order('total_points', { ascending: false, nullsFirst: false })
+      .order('draw_hits', { ascending: false, nullsFirst: false })
+      .order('round1_points', { ascending: false, nullsFirst: false })
+      .order('round2_points', { ascending: false, nullsFirst: false })
     if (data) {
       setLeaderboard(
         data.map((profile, index) => ({ ...profile, rank: index + 1 })) as LeaderboardEntry[]
