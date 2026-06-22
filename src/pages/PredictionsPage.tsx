@@ -9,7 +9,7 @@ import type { RoundNumber } from '../types'
 export function PredictionsPage() {
   const [round, setRound] = useState<RoundNumber>(1)
   const { matches, loading: matchLoading } = useMatches(round)
-  const { predictions, loading: predLoading, refetch } = usePredictions()
+  const { predictions, loading: predLoading, refetchSilent } = usePredictions()
 
   const loading = matchLoading || predLoading
 
@@ -98,7 +98,7 @@ export function PredictionsPage() {
           <MatchList
             matches={matches}
             predictions={predictions}
-            onSaved={refetch}
+            onSaved={refetchSilent}
           />
         )}
       </main>

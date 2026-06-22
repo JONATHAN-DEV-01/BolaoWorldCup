@@ -8,15 +8,15 @@ export function usePredictions() {
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchPredictions = async () => {
+  const fetchPredictions = async (silent = false) => {
     if (!user) return
-    setLoading(true)
+    if (!silent) setLoading(true)
     const { data } = await supabase
       .from('predictions')
       .select('*')
       .eq('user_id', user.id)
     setPredictions((data as Prediction[]) ?? [])
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   useEffect(() => {
@@ -32,12 +32,15 @@ export function usePredictions() {
       predicted_away_score: awayScore,
     })
     if (error) throw error
-    await fetchPredictions()
+    await fetchPredictions(true) // silent: não faz a tela recarregar
   }
 
   const getPrediction = (matchId: number): Prediction | null => {
     return predictions.find(p => p.match_id === matchId) ?? null
   }
 
-  return { predictions, loading, savePrediction, getPrediction, refetch: fetchPredictions }
+  const refetch = () => fetchPredictions(false)
+  const refetchSilent = () => fetchPredictions(true)
+
+  return { predictions, loading, savePrediction, getPrediction, refetch, refetchSilent }
 }

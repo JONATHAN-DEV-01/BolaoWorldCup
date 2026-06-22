@@ -12,6 +12,9 @@ export function useLeaderboard() {
       .select('*')
       .eq('is_admin', false)
       .order('total_points', { ascending: false })
+      .order('draw_hits', { ascending: false })
+      .order('round1_points', { ascending: false })
+      .order('round2_points', { ascending: false })
     if (data) {
       setLeaderboard(
         data.map((profile, index) => ({ ...profile, rank: index + 1 })) as LeaderboardEntry[]

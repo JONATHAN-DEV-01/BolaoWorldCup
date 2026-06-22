@@ -10,6 +10,13 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
 
   const medalIcon = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : null
 
+  // Montar subtexto de desempate (só mostra se há pelo menos um empate ou ponto em R1/R2)
+  const tiebreakerParts: string[] = []
+  if ((entry.draw_hits ?? 0) > 0) tiebreakerParts.push(`🟰 ${entry.draw_hits} empate${entry.draw_hits === 1 ? '' : 's'}`)
+  if ((entry.round1_points ?? 0) > 0) tiebreakerParts.push(`R1: ${entry.round1_points}pts`)
+  if ((entry.round2_points ?? 0) > 0) tiebreakerParts.push(`R2: ${entry.round2_points}pts`)
+  const tiebreakerText = tiebreakerParts.join(' · ')
+
   return (
     <div
       id={`rank-row-${entry.id}`}
@@ -21,7 +28,7 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
       </div>
 
       {/* User info */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', flex: 1, minWidth: 0 }}>
         <span style={{
           fontWeight: 700,
           fontSize: '0.9375rem',
@@ -39,10 +46,23 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
             {entry.full_name}
           </span>
         )}
+        {tiebreakerText && (
+          <span style={{
+            fontSize: '0.6875rem',
+            color: 'var(--color-text-secondary)',
+            opacity: 0.7,
+            marginTop: '1px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {tiebreakerText}
+          </span>
+        )}
       </div>
 
       {/* Points */}
-      <div style={{ display: 'flex', flex: 'column', alignItems: 'flex-end', gap: '1px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px' }}>
         <span style={{
           fontFamily: 'var(--font-display)',
           fontWeight: 800,

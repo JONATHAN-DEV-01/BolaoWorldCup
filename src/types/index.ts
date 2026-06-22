@@ -9,6 +9,10 @@ export interface Profile {
   is_admin: boolean
   avatar_url: string | null
   total_points: number
+  // Critérios de desempate
+  draw_hits: number        // empates acertados
+  round1_points: number    // pontos acumulados na Rodada 1
+  round2_points: number    // pontos acumulados na Rodada 2
   created_at: string
 }
 
