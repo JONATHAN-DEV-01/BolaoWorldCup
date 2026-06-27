@@ -1,8 +1,8 @@
-import type { LeaderboardEntry } from '../../types'
+import type { LeaderboardEntryV2 } from '../../types'
 import { UserRankRow } from './UserRankRow'
 
 interface LeaderboardTableProps {
-  entries: LeaderboardEntry[]
+  entries: LeaderboardEntryV2[]
   currentUserId?: string
 }
 
