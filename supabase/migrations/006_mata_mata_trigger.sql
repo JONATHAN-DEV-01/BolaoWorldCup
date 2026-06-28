@@ -116,21 +116,49 @@ CREATE OR REPLACE FUNCTION recalculate_on_result()
 RETURNS TRIGGER AS $$
 BEGIN
 
-  -- Só age se winner foi preenchido pela primeira vez,
-  -- ou se winner / match_method mudaram (correção pelo admin)
-  IF NEW.winner IS NOT NULL
-     AND (
-       OLD.winner IS NULL
-       OR OLD.winner      IS DISTINCT FROM NEW.winner
-       OR OLD.match_method IS DISTINCT FROM NEW.match_method
-     )
-  THEN
-    -- Touch em updated_at → dispara o trigger BEFORE UPDATE
-    -- em cada prediction afetada, recalculando os pontos
+  -- ── Caso 1: Resultado salvo ou corrigido pelo admin ──────────
+  -- Dispara quando winner é preenchido pela primeira vez,
+  -- ou quando winner / match_method mudam (correção).
+  IF NEW.winner IS NOT NULL AND (
+    OLD.winner IS NULL OR
+    OLD.winner      IS DISTINCT FROM NEW.winner OR
+    OLD.match_method IS DISTINCT FROM NEW.match_method
+  ) THEN
+    -- Touch em updated_at → dispara calculate_knockout_points
+    -- (BEFORE UPDATE) em cada prediction afetada em cascata.
     UPDATE predictions
        SET updated_at = NOW()
      WHERE match_id = NEW.id
        AND predicted_winner IS NOT NULL;
+
+  -- ── Caso 2: Resultado apagado / jogo reaberto pelo admin ─────
+  -- Dispara quando winner volta a NULL (admin limpou o resultado)
+  -- ou quando is_finished vai de TRUE para FALSE (reabertura).
+  ELSIF (OLD.winner IS NOT NULL AND NEW.winner IS NULL)
+     OR (OLD.is_finished = TRUE AND NEW.is_finished = FALSE) THEN
+
+    -- Zera flags e pontos do mata-mata para este jogo
+    UPDATE predictions
+       SET is_full_hit    = false,
+           is_partial_hit = false,
+           points_earned  = 0
+     WHERE match_id = NEW.id
+       AND predicted_winner IS NOT NULL;
+
+    -- Recalcula total_points de cada usuário afetado (soma do zero)
+    UPDATE profiles p
+       SET total_points = (
+             SELECT COALESCE(SUM(pr.points_earned), 0)
+               FROM predictions pr
+              WHERE pr.user_id = p.id
+           )
+     WHERE p.id IN (
+       SELECT DISTINCT user_id
+         FROM predictions
+        WHERE match_id = NEW.id
+          AND predicted_winner IS NOT NULL
+     );
+
   END IF;
 
   RETURN NEW;
