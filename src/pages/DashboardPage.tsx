@@ -151,26 +151,7 @@ export function DashboardPage() {
             Pontuação
           </h3>
 
-          {/* Fase de grupos */}
-          <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-secondary)', opacity: 0.6, marginBottom: '0.4rem' }}>
-            Fase de Grupos
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.875rem' }}>
-            {[
-              { icon: '🟰', text: 'Acertar o empate',    pts: '10 pts' },
-              { icon: '✅', text: 'Acertar o vencedor',  pts: '5 pts'  },
-              { icon: '❌', text: 'Errar o resultado',   pts: '0 pts'  },
-            ].map(item => (
-              <div key={item.text} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span>{item.icon}</span>
-                <span style={{ flex: 1, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{item.text}</span>
-                <span style={{ fontWeight: 700, color: 'var(--color-accent-gold)', fontSize: '0.875rem' }}>{item.pts}</span>
-              </div>
-            ))}
-          </div>
-
           {/* Mata-mata */}
-          <div style={{ height: 1, background: 'var(--color-border)', marginBottom: '0.75rem' }} />
           <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#f5c518', opacity: 0.8, marginBottom: '0.4rem' }}>
             🏆 Mata-Mata
           </p>
