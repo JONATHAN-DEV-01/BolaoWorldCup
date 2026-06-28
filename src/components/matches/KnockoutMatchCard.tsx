@@ -85,18 +85,15 @@ export function KnockoutMatchCard({ match, prediction, onSaved }: KnockoutMatchC
       return                                 { label: 'Sem pontos',                        cls: 'ko-badge-gray'   }
     }
     if (hasPrediction || saved) return { label: 'Aguardando resultado...', cls: 'ko-badge-wait' }
-    if (activeWinner) {
-      return activeMethod
-        ? { label: 'Até 20 pts 🎯',  cls: 'badge-pts' }
-        : { label: 'Até 12 pts ✓',   cls: 'badge-pts' }
-    }
-    return { label: 'Até 20 pts',  cls: 'badge-pts' }
+    if (activeWinner && activeMethod) return { label: 'Até 20 pts 🎯', cls: 'badge-pts' }
+    return { label: 'Selecione classificado + método',  cls: 'badge-pts' }
   }
   const pointsInfo = getPointsInfo()
 
   // ── Save handler ─────────────────────────────────────────
   const handleSave = async () => {
     if (!activeWinner) { setError('Selecione quem se classifica'); return }
+    if (!selectedMethod) { setError('Selecione como o time se classifica'); return }
     setSaving(true)
     setError(null)
     try {
@@ -296,8 +293,8 @@ export function KnockoutMatchCard({ match, prediction, onSaved }: KnockoutMatchC
           color: canPredict ? 'var(--color-accent-primary)' : 'var(--color-text-secondary)',
         }}>
           Como passa?{' '}
-          <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, opacity: 0.75 }}>
-            (opcional · garante 20 pts em vez de 12 se acertar)
+          <span style={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0, color: 'var(--color-accent-secondary)', opacity: 0.9 }}>
+            (obrigatório)
           </span>
         </p>
 
@@ -359,9 +356,9 @@ export function KnockoutMatchCard({ match, prediction, onSaved }: KnockoutMatchC
           })}
         </div>
 
-        {canPredict && !activeMethod && (
-          <p style={{ fontSize: '0.68rem', color: 'var(--color-text-secondary)', marginTop: '0.375rem', textAlign: 'center', opacity: 0.7 }}>
-            Sem método selecionado — máximo 12 pts
+        {canPredict && !activeMethod && activeWinner && (
+          <p style={{ fontSize: '0.68rem', color: 'var(--color-accent-secondary)', marginTop: '0.375rem', textAlign: 'center', opacity: 0.85 }}>
+            ⚠️ Selecione o método para confirmar o palpite
           </p>
         )}
       </div>
@@ -421,9 +418,9 @@ export function KnockoutMatchCard({ match, prediction, onSaved }: KnockoutMatchC
           <button
             id={`ko-confirm-${match.id}`}
             className="btn btn-primary btn-sm"
-            style={activeWinner ? {} : { opacity: 0.45, cursor: 'not-allowed' }}
+            style={(activeWinner && activeMethod) ? {} : { opacity: 0.45, cursor: 'not-allowed' }}
             onClick={handleSave}
-            disabled={saving || !activeWinner}
+            disabled={saving || !activeWinner || !activeMethod}
           >
             {saving ? '...' : '✓ Confirmar Palpite'}
           </button>
