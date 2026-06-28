@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import type { Prediction } from '../types'
+import type { Prediction, KnockoutWinner, KnockoutMethod } from '../types'
 
 export function usePredictions() {
   const { user } = useAuth()
@@ -35,6 +35,29 @@ export function usePredictions() {
     await fetchPredictions(true) // silent: não faz a tela recarregar
   }
 
+  const saveKnockoutPrediction = async (
+    matchId: number,
+    winner: KnockoutWinner,
+    method: KnockoutMethod | null,
+  ) => {
+    if (!user) throw new Error('Não autenticado')
+    const { error } = await supabase.from('predictions').upsert(
+      {
+        user_id: user.id,
+        match_id: matchId,
+        // Fase de grupos exige NOT NULL — usamos 0 como sentinela
+        // (o trigger ignora predicted_winner NULL, que aqui é sempre preenchido)
+        predicted_home_score: 0,
+        predicted_away_score: 0,
+        predicted_winner: winner,
+        predicted_method: method,
+      },
+      { onConflict: 'user_id,match_id' },
+    )
+    if (error) throw error
+    await fetchPredictions(true)
+  }
+
   const getPrediction = (matchId: number): Prediction | null => {
     return predictions.find(p => p.match_id === matchId) ?? null
   }
@@ -42,5 +65,5 @@ export function usePredictions() {
   const refetch = () => fetchPredictions(false)
   const refetchSilent = () => fetchPredictions(true)
 
-  return { predictions, loading, savePrediction, getPrediction, refetch, refetchSilent }
+  return { predictions, loading, savePrediction, saveKnockoutPrediction, getPrediction, refetch, refetchSilent }
 }

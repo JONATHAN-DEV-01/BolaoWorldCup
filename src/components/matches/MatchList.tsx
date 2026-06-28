@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { Match, Prediction } from '../../types'
 import { MatchCard } from './MatchCard'
+import { KnockoutMatchCard } from './KnockoutMatchCard'
 import { formatMatchDate } from '../../utils/points'
 
 interface MatchListProps {
@@ -40,7 +41,15 @@ export function MatchList({ matches, predictions, onSaved }: MatchListProps) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {dayMatches.map(match => {
               const prediction = predictions.find(p => p.match_id === match.id) ?? null
-              return (
+              // round >= 4 → mata-mata card (sem empate, com método)
+              return match.round >= 4 ? (
+                <KnockoutMatchCard
+                  key={match.id}
+                  match={match}
+                  prediction={prediction}
+                  onSaved={onSaved}
+                />
+              ) : (
                 <MatchCard
                   key={match.id}
                   match={match}

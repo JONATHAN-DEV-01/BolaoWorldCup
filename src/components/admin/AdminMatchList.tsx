@@ -1,5 +1,6 @@
 import type { Match } from '../../types'
 import { AdminMatchCard } from './AdminMatchCard'
+import { AdminKnockoutCard } from './AdminKnockoutCard'
 
 interface AdminMatchListProps {
   matches: Match[]
@@ -21,9 +22,13 @@ export function AdminMatchList({ matches, onUpdated }: AdminMatchListProps) {
         {title} ({items.length})
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {items.map(m => (
-          <AdminMatchCard key={m.id} match={m} onUpdated={onUpdated} />
-        ))}
+        {items.map(m =>
+          m.round >= 4 ? (
+            <AdminKnockoutCard key={m.id} match={m} onUpdated={onUpdated} />
+          ) : (
+            <AdminMatchCard key={m.id} match={m} onUpdated={onUpdated} />
+          )
+        )}
       </div>
     </div>
   )

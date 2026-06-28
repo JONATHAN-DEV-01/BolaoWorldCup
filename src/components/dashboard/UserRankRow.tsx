@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import type { LeaderboardEntry } from '../../types'
+import type { LeaderboardEntryV2 } from '../../types'
 
 interface UserRankRowProps {
-  entry: LeaderboardEntry
+  entry: LeaderboardEntryV2
   isCurrentUser: boolean
 }
 
@@ -12,9 +12,11 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
   const rankClass = entry.rank === 1 ? 'rank-1' : entry.rank === 2 ? 'rank-2' : entry.rank === 3 ? 'rank-3' : 'rank-n'
   const medalIcon = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : null
 
-  const drawHits = entry.draw_hits    ?? 0
-  const round1   = entry.round1_points ?? 0
-  const round2   = entry.round2_points ?? 0
+  const drawHits    = entry.draw_hits    ?? 0
+  const round1      = entry.round1_points ?? 0
+  const round2      = entry.round2_points ?? 0
+  const fullHits    = entry.full_hits     ?? 0
+  const classRight  = entry.total_classified_correct ?? 0
 
   const tiebreakerParts: string[] = []
   if (drawHits > 0) tiebreakerParts.push(`🟰 ${drawHits} empate${drawHits === 1 ? '' : 's'}`)
@@ -77,8 +79,8 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
           )}
         </div>
 
-        {/* Points + tap hint */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px' }}>
+        {/* Points + knockout pills + tap hint */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
           <span style={{
             fontFamily: 'var(--font-display)',
             fontWeight: 800,
@@ -88,6 +90,37 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
             {entry.total_points}
           </span>
           <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>pts</span>
+
+          {/* Pills discretas de desempate mata-mata */}
+          <div style={{ display: 'flex', gap: '0.3rem', marginTop: '2px' }}>
+            <span
+              title={`${fullHits} acerto${fullHits === 1 ? '' : 's'} completo${fullHits === 1 ? '' : 's'} (mata-mata)`}
+              style={{
+                fontSize: '0.62rem', fontWeight: 700, padding: '1px 6px',
+                borderRadius: '100px',
+                background: fullHits > 0 ? 'rgba(245,197,24,0.15)' : 'rgba(136,146,164,0.1)',
+                color: fullHits > 0 ? '#f5c518' : 'var(--color-text-secondary)',
+                border: `1px solid ${fullHits > 0 ? 'rgba(245,197,24,0.3)' : 'var(--color-border)'}`,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              🎯 {fullHits}
+            </span>
+            <span
+              title={`${classRight} classificado${classRight === 1 ? '' : 's'} certo${classRight === 1 ? '' : 's'} no total`}
+              style={{
+                fontSize: '0.62rem', fontWeight: 700, padding: '1px 6px',
+                borderRadius: '100px',
+                background: classRight > 0 ? 'rgba(0,212,170,0.12)' : 'rgba(136,146,164,0.1)',
+                color: classRight > 0 ? 'var(--color-accent-primary)' : 'var(--color-text-secondary)',
+                border: `1px solid ${classRight > 0 ? 'rgba(0,212,170,0.25)' : 'var(--color-border)'}`,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              ✓ {classRight}
+            </span>
+          </div>
+
           <span style={{ fontSize: '0.6rem', color: 'var(--color-text-secondary)', opacity: 0.45, marginTop: '2px' }}>
             ▲ detalhes
           </span>
@@ -200,7 +233,51 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
 
-              {/* 1º — Empates acertados */}
+              {/* 0 — Acertos completos (mata-mata, novo) */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: 'var(--color-bg-card)',
+                border: `1px solid ${fullHits > 0 ? 'rgba(245,197,24,0.4)' : 'var(--color-border)'}`,
+                borderRadius: 12, padding: '0.75rem 1rem',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                  <span style={{ fontSize: '1.375rem' }}>🎯</span>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>Acertos Completos</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>1º desempate — winner + método certos (mata-mata)</div>
+                  </div>
+                </div>
+                <span style={{
+                  fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.625rem',
+                  color: fullHits > 0 ? '#f5c518' : 'var(--color-text-secondary)',
+                }}>
+                  {fullHits}
+                </span>
+              </div>
+
+              {/* 0b — Classificados corretos no total (mata-mata, novo) */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: 'var(--color-bg-card)',
+                border: `1px solid ${classRight > 0 ? 'rgba(0,212,170,0.3)' : 'var(--color-border)'}`,
+                borderRadius: 12, padding: '0.75rem 1rem',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                  <span style={{ fontSize: '1.375rem' }}>✓</span>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>Classificados Certos</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>2º desempate — total de mata-mata acertados (full + parcial)</div>
+                  </div>
+                </div>
+                <span style={{
+                  fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.625rem',
+                  color: classRight > 0 ? 'var(--color-accent-primary)' : 'var(--color-text-secondary)',
+                }}>
+                  {classRight}
+                </span>
+              </div>
+
+              {/* 1 — Empates acertados (fase de grupos) */}
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 background: 'var(--color-bg-card)',
@@ -211,7 +288,7 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
                   <span style={{ fontSize: '1.375rem' }}>🟰</span>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>Empates acertados</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>1º critério de desempate</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>3º desempate — fase de grupos</div>
                   </div>
                 </div>
                 <span style={{
@@ -222,7 +299,7 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
                 </span>
               </div>
 
-              {/* 2º — Rodada 1 */}
+              {/* 2 — Rodada 1 */}
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 background: 'var(--color-bg-card)',
@@ -233,7 +310,7 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
                   <span style={{ fontSize: '1.375rem' }}>1️⃣</span>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>Pontos na Rodada 1</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>2º critério de desempate</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>4º desempate</div>
                   </div>
                 </div>
                 <span style={{
@@ -244,7 +321,7 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
                 </span>
               </div>
 
-              {/* 3º — Rodada 2 */}
+              {/* 3 — Rodada 2 */}
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 background: 'var(--color-bg-card)',
@@ -255,7 +332,7 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
                   <span style={{ fontSize: '1.375rem' }}>2️⃣</span>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>Pontos na Rodada 2</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>3º critério de desempate</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>5º desempate</div>
                   </div>
                 </div>
                 <span style={{
