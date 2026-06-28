@@ -10,8 +10,8 @@ export function useMatches(round?: number) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchMatches = async () => {
-    setLoading(true)
+  const fetchMatches = async (isRefetch = false) => {
+    if (!isRefetch) setLoading(true)
     let query = supabase
       .from('matches')
       .select('*')
@@ -24,14 +24,14 @@ export function useMatches(round?: number) {
     const { data, error } = await query
     if (error) setError(error.message)
     else setMatches(data as Match[])
-    setLoading(false)
+    if (!isRefetch) setLoading(false)
   }
 
   useEffect(() => {
     fetchMatches()
   }, [round])
 
-  return { matches, loading, error, refetch: fetchMatches }
+  return { matches, loading, error, refetch: () => fetchMatches(true) }
 }
 
 // ----------------------------------------------------------------
@@ -100,8 +100,8 @@ export function useKnockoutMatches(activeRound: number | undefined) {
   }, [])
 
   // ── Busca apenas o round ativo ──────────────────────────────
-  const fetchRound = useCallback(async (round: number) => {
-    setLoading(true)
+  const fetchRound = useCallback(async (round: number, isRefetch = false) => {
+    if (!isRefetch) setLoading(true)
     const baseQuery = supabase
       .from('matches')
       .select('*')
@@ -115,7 +115,7 @@ export function useKnockoutMatches(activeRound: number | undefined) {
     } else {
       setError('Erro ao carregar jogos desta fase.')
     }
-    setLoading(false)
+    if (!isRefetch) setLoading(false)
   }, [])
 
   // ── Carrega allMatches uma vez na montagem ──────────────────
@@ -153,7 +153,7 @@ export function useKnockoutMatches(activeRound: number | undefined) {
 
           if (isKnockout || isHiddenChange) {
             fetchAll()
-            if (activeRound !== undefined) fetchRound(activeRound)
+            if (activeRound !== undefined) fetchRound(activeRound, true)
           }
         }
       )
@@ -170,7 +170,7 @@ export function useKnockoutMatches(activeRound: number | undefined) {
     usingFallback, // true se migration 005 ainda não aplicada
     refetch: () => {
       fetchAll()
-      if (activeRound !== undefined) fetchRound(activeRound)
+      if (activeRound !== undefined) fetchRound(activeRound, true)
     },
   }
 }
