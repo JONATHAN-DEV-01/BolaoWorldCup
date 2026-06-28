@@ -36,6 +36,8 @@ export interface Match {
   is_hidden:    boolean | null
   winner:       KnockoutWinner | null
   match_method: KnockoutMethod | null
+  // Chaveamento lado A ou B (migration 010) — NULL para Semi, 3º e Final
+  side:         'A' | 'B' | null
 }
 
 export interface Prediction {

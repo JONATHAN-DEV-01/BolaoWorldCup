@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Navbar } from '../components/ui/Navbar'
 import { KnockoutPhaseTabs, detectActiveKnockoutRound, KNOCKOUT_PHASE_LABELS } from '../components/matches/KnockoutPhaseTabs'
 import { KnockoutMatchCard } from '../components/matches/KnockoutMatchCard'
+import { SideDivider } from '../components/matches/SideDivider'
 import { useKnockoutMatches } from '../hooks/useMatches'
 import { usePredictions } from '../hooks/usePredictions'
 import { formatMatchDate } from '../utils/points'
@@ -11,7 +12,7 @@ import type { Match } from '../types'
 // Helpers
 // ──────────────────────────────────────────────────────────────
 
-/** Agrupa jogos por data (igual ao MatchList original) */
+/** Agrupa jogos por data */
 function groupByDate(matches: Match[]) {
   const map = new Map<string, Match[]>()
   for (const m of matches) {
@@ -21,6 +22,41 @@ function groupByDate(matches: Match[]) {
   }
   return map
 }
+
+/** Renderiza um grupo de jogos agrupados por data */
+function MatchGroup({ matches, predictions, onSaved }: {
+  matches: Match[]
+  predictions: ReturnType<typeof usePredictionsLocal>
+  onSaved: () => void
+}) {
+  const grouped = groupByDate(matches)
+  return (
+    <>
+      {Array.from(grouped.entries()).map(([date, dayMatches]) => (
+        <div key={date}>
+          <div className="date-header">📅 {date}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+            {dayMatches.map(match => {
+              const prediction = predictions.find((p: { match_id: number }) => p.match_id === match.id) ?? null
+              return (
+                <KnockoutMatchCard
+                  key={match.id}
+                  match={match}
+                  prediction={prediction}
+                  onSaved={onSaved}
+                />
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </>
+  )
+}
+
+// Tipo auxiliar para evitar import circular
+type PredictionList = ReturnType<typeof Array.prototype.find> extends infer T ? T[] : never
+const usePredictionsLocal = (arr: PredictionList) => arr
 
 // ──────────────────────────────────────────────────────────────
 // Page
@@ -67,9 +103,11 @@ export function PredictionsPage() {
     ? (KNOCKOUT_PHASE_LABELS[activeRound] ?? `Fase ${activeRound}`)
     : 'Mata-Mata'
 
-  // ── Agrupar por data para exibição ───────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const grouped = groupByDate(matches as any)
+  // ── Separar por lado (side) e agrupar por data ─────────────────
+  const sideA   = matches.filter(m => m.side === 'A')
+  const sideB   = matches.filter(m => m.side === 'B')
+  const noSide  = matches.filter(m => m.side === null || m.side === undefined)
+  const hasSides = sideA.length > 0 || sideB.length > 0
 
   // ── Janela de transição: sem jogos visíveis ─────────────────
   // noMatchesYet = true durante a janela em que:
@@ -282,24 +320,26 @@ export function PredictionsPage() {
               </span>
             </div>
 
-            {Array.from(grouped.entries()).map(([date, dayMatches]) => (
-              <div key={date}>
-                <div className="date-header">📅 {date}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
-                  {dayMatches.map(match => {
-                    const prediction = predictions.find(p => p.match_id === match.id) ?? null
-                    return (
-                      <KnockoutMatchCard
-                        key={match.id}
-                        match={match}
-                        prediction={prediction}
-                        onSaved={refetchSilent}
-                      />
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
+            {hasSides ? (
+              // Fases com chave (rounds 4, 5, 6): separar por lado
+              <>
+                {sideA.length > 0 && (
+                  <>
+                    <SideDivider side="A" />
+                    <MatchGroup matches={sideA} predictions={predictions} onSaved={refetchSilent} />
+                  </>
+                )}
+                {sideB.length > 0 && (
+                  <>
+                    <SideDivider side="B" />
+                    <MatchGroup matches={sideB} predictions={predictions} onSaved={refetchSilent} />
+                  </>
+                )}
+              </>
+            ) : (
+              // Semifinal, 3º Lugar, Final: sem separação de lado
+              <MatchGroup matches={noSide.length > 0 ? noSide : matches} predictions={predictions} onSaved={refetchSilent} />
+            )}
           </div>
         )}
 

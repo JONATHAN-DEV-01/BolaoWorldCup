@@ -143,6 +143,21 @@ export function KnockoutMatchCard({ match, prediction, onSaved }: KnockoutMatchC
           🏆 {phaseLabel}
         </span>
 
+        {/* Badge de chave (A/B) — apenas rounds com side definido */}
+        {match.side && (
+          <span style={{
+            fontSize: '0.68rem', fontWeight: 700,
+            padding: '2px 8px', borderRadius: '100px',
+            letterSpacing: '0.06em',
+            ...(match.side === 'A'
+              ? { color: 'var(--color-accent-primary)', background: 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.25)' }
+              : { color: 'var(--color-accent-secondary)', background: 'rgba(233,69,96,0.1)', border: '1px solid rgba(233,69,96,0.25)' }
+            ),
+          }}>
+            Chave {match.side}
+          </span>
+        )}
+
         <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
           {formatMatchTime(match.match_date)}
         </span>
