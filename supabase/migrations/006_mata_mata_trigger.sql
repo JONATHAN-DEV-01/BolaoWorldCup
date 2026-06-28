@@ -83,15 +83,16 @@ BEGIN
   NEW.is_full_hit    := v_full_hit;
   NEW.is_partial_hit := v_partial;
 
-  -- Atualiza total_points no perfil:
-  --   soma todas as predictions deste usuário, exceto a atual
-  --   (que ainda não foi gravada), e adiciona os novos pontos.
+  -- Atualiza total_points no perfil somando APENAS jogos do mata-mata (round >= 4)
+  -- Isso evita que pontos da fase de grupos sejam recontados após o reset do ranking.
   UPDATE profiles
      SET total_points = (
-           SELECT COALESCE(SUM(points_earned), 0)
-             FROM predictions
-            WHERE user_id = NEW.user_id
-              AND id != NEW.id
+           SELECT COALESCE(SUM(pr.points_earned), 0)
+             FROM predictions pr
+             JOIN matches m ON m.id = pr.match_id
+            WHERE pr.user_id = NEW.user_id
+              AND pr.id != NEW.id
+              AND m.round >= 4
          ) + v_points
    WHERE id = NEW.user_id;
 
