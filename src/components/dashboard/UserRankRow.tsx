@@ -12,17 +12,9 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
   const rankClass = entry.rank === 1 ? 'rank-1' : entry.rank === 2 ? 'rank-2' : entry.rank === 3 ? 'rank-3' : 'rank-n'
   const medalIcon = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : null
 
-  const drawHits    = entry.draw_hits    ?? 0
-  const round1      = entry.round1_points ?? 0
-  const round2      = entry.round2_points ?? 0
   const fullHits    = entry.full_hits     ?? 0
   const classRight  = entry.total_classified_correct ?? 0
 
-  const tiebreakerParts: string[] = []
-  if (drawHits > 0) tiebreakerParts.push(`🟰 ${drawHits} empate${drawHits === 1 ? '' : 's'}`)
-  if (round1   > 0) tiebreakerParts.push(`R1: ${round1}pts`)
-  if (round2   > 0) tiebreakerParts.push(`R2: ${round2}pts`)
-  const tiebreakerText = tiebreakerParts.join(' · ')
 
   const rankColor =
     entry.rank === 1 ? '#f5c518' :
@@ -64,20 +56,8 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
               {entry.full_name}
             </span>
           )}
-          {tiebreakerText && (
-            <span style={{
-              fontSize: '0.6875rem',
-              color: 'var(--color-text-secondary)',
-              opacity: 0.7,
-              marginTop: '1px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}>
-              {tiebreakerText}
-            </span>
-          )}
         </div>
+
 
         {/* Points + knockout pills + tap hint */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
@@ -274,72 +254,6 @@ export function UserRankRow({ entry, isCurrentUser }: UserRankRowProps) {
                   color: classRight > 0 ? 'var(--color-accent-primary)' : 'var(--color-text-secondary)',
                 }}>
                   {classRight}
-                </span>
-              </div>
-
-              {/* 1 — Empates acertados (fase de grupos) */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                background: 'var(--color-bg-card)',
-                border: `1px solid ${drawHits > 0 ? 'rgba(245,197,24,0.3)' : 'var(--color-border)'}`,
-                borderRadius: 12, padding: '0.75rem 1rem',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                  <span style={{ fontSize: '1.375rem' }}>🟰</span>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>Empates acertados</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>3º desempate — fase de grupos</div>
-                  </div>
-                </div>
-                <span style={{
-                  fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.625rem',
-                  color: drawHits > 0 ? 'var(--color-accent-gold)' : 'var(--color-text-secondary)',
-                }}>
-                  {drawHits}
-                </span>
-              </div>
-
-              {/* 2 — Rodada 1 */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                background: 'var(--color-bg-card)',
-                border: `1px solid ${round1 > 0 ? 'rgba(0,168,255,0.3)' : 'var(--color-border)'}`,
-                borderRadius: 12, padding: '0.75rem 1rem',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                  <span style={{ fontSize: '1.375rem' }}>1️⃣</span>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>Pontos na Rodada 1</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>4º desempate</div>
-                  </div>
-                </div>
-                <span style={{
-                  fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.625rem',
-                  color: round1 > 0 ? '#00a8ff' : 'var(--color-text-secondary)',
-                }}>
-                  {round1}<span style={{ fontSize: '0.8rem', fontWeight: 600 }}>pts</span>
-                </span>
-              </div>
-
-              {/* 3 — Rodada 2 */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                background: 'var(--color-bg-card)',
-                border: `1px solid ${round2 > 0 ? 'rgba(0,212,170,0.3)' : 'var(--color-border)'}`,
-                borderRadius: 12, padding: '0.75rem 1rem',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                  <span style={{ fontSize: '1.375rem' }}>2️⃣</span>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>Pontos na Rodada 2</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', opacity: 0.8 }}>5º desempate</div>
-                  </div>
-                </div>
-                <span style={{
-                  fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.625rem',
-                  color: round2 > 0 ? 'var(--color-accent-primary)' : 'var(--color-text-secondary)',
-                }}>
-                  {round2}<span style={{ fontSize: '0.8rem', fontWeight: 600 }}>pts</span>
                 </span>
               </div>
 
