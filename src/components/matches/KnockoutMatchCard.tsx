@@ -8,11 +8,12 @@ import { usePredictions } from '../../hooks/usePredictions'
 // ──────────────────────────────────────────────────────────────
 
 const PHASE_LABELS: Record<number, string> = {
-  4: 'Oitavas de Final',
-  5: 'Quartas de Final',
-  6: 'Semifinal',
-  7: 'Disputa 3º Lugar',
-  8: 'Final',
+  4: '16 avos de Final',
+  5: 'Oitavas de Final',
+  6: 'Quartas de Final',
+  7: 'Semifinal',
+  8: 'Disputa 3º Lugar',
+  9: 'Final',
 }
 
 const METHOD_OPTIONS: { key: KnockoutMethod; label: string; icon: string }[] = [

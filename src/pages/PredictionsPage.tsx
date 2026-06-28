@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Navbar } from '../components/ui/Navbar'
 import { KnockoutPhaseTabs, detectActiveKnockoutRound, KNOCKOUT_PHASE_LABELS } from '../components/matches/KnockoutPhaseTabs'
 import { KnockoutMatchCard } from '../components/matches/KnockoutMatchCard'
-import { SideDivider } from '../components/matches/SideDivider'
 import { useKnockoutMatches } from '../hooks/useMatches'
 import { usePredictions } from '../hooks/usePredictions'
 import { formatMatchDate } from '../utils/points'
@@ -102,12 +101,6 @@ export function PredictionsPage() {
   const phaseLabel = activeRound !== undefined
     ? (KNOCKOUT_PHASE_LABELS[activeRound] ?? `Fase ${activeRound}`)
     : 'Mata-Mata'
-
-  // ── Separar por lado (side) e agrupar por data ─────────────────
-  const sideA   = matches.filter(m => m.side === 'A')
-  const sideB   = matches.filter(m => m.side === 'B')
-  const noSide  = matches.filter(m => m.side === null || m.side === undefined)
-  const hasSides = sideA.length > 0 || sideB.length > 0
 
   // ── Janela de transição: sem jogos visíveis ─────────────────
   // noMatchesYet = true durante a janela em que:
@@ -320,26 +313,7 @@ export function PredictionsPage() {
               </span>
             </div>
 
-            {hasSides ? (
-              // Fases com chave (rounds 4, 5, 6): separar por lado
-              <>
-                {sideA.length > 0 && (
-                  <>
-                    <SideDivider side="A" />
-                    <MatchGroup matches={sideA} predictions={predictions} onSaved={refetchSilent} />
-                  </>
-                )}
-                {sideB.length > 0 && (
-                  <>
-                    <SideDivider side="B" />
-                    <MatchGroup matches={sideB} predictions={predictions} onSaved={refetchSilent} />
-                  </>
-                )}
-              </>
-            ) : (
-              // Semifinal, 3º Lugar, Final: sem separação de lado
-              <MatchGroup matches={noSide.length > 0 ? noSide : matches} predictions={predictions} onSaved={refetchSilent} />
-            )}
+            <MatchGroup matches={matches} predictions={predictions} onSaved={refetchSilent} />
           </div>
         )}
 
